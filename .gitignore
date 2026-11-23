@@ -1,0 +1,7 @@
+# 내부 참고·설계·DB 스키마 파일은 공개 웹호스팅에서 제외
+CLAUDE.md
+site1.md
+site2.md
+supabase-schema.sql
+.DS_Store
+Thumbs.db

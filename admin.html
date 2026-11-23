@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>관리자 센터 | 삼성생명 남산법인지점 GFC · SFP 채용 관리</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+
+  <!-- ==================== 1. 로그인 화면 ==================== -->
+  <section class="admin-login-wrap" id="loginView">
+    <div class="admin-login-card">
+      <span class="brand-badge">GFC·SFP ADMIN</span>
+      <h1>남산법인지점 관리자 로그인</h1>
+      <p>삼성생명 남산법인지점 GFC · SFP 잡설명회 신청자 및 일정 관리 시스템입니다.</p>
+
+      <div class="admin-alert" id="configWarningBanner" style="display: none;">
+        <strong>[로컬 테스트 모드]</strong> 아직 <code>config.js</code>에 Supabase 키가 입력되지 않았습니다.<br>
+        임시 계정 <strong>realkick@nate.com</strong> / <strong>115599</strong> 로 바로 로그인하거나 아래 미리보기 버튼을 눌러 입장하세요.
+      </div>
+
+      <div class="form-error" id="loginError" role="alert"></div>
+
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="adminEmail">관리자 이메일</label>
+          <input
+            type="email"
+            id="adminEmail"
+            class="form-control"
+            placeholder="admin@example.com"
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="adminPassword">비밀번호</label>
+          <input
+            type="password"
+            id="adminPassword"
+            class="form-control"
+            placeholder="비밀번호 입력"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="loginSubmitBtn">
+          관리자 로그인
+        </button>
+      </form>
+
+      <button
+        type="button"
+        class="btn btn-outline btn-block"
+        id="demoModeBtn"
+        style="margin-top: 10px; display: none;"
+      >
+        데모 데이터로 관리자 UI 미리보기
+      </button>
+
+      <div style="margin-top: 18px; text-align: center;">
+        <a href="index.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: underline;">
+          ← 채용 랜딩페이지로 돌아가기
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. 관리자 대시보드 ==================== -->
+  <div id="dashboardView" style="display: none;">
+    <!-- Sticky Header -->
+    <header class="admin-header">
+      <div class="container admin-header-inner">
+        <div class="brand-logo">
+          <span class="brand-badge">ADMIN</span>
+          <span class="brand-title">
+            <strong>남산법인지점 채용 관리</strong>
+            <span id="adminUserEmail">관리자</span>
+          </span>
+        </div>
+
+        <div class="admin-header-actions">
+          <a href="index.html" class="btn btn-outline-light btn-sm">사이트 보기</a>
+          <button type="button" class="btn btn-outline-light btn-sm" id="logoutBtn">로그아웃</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Tabs Bar -->
+    <div class="admin-tabs-bar">
+      <div class="container">
+        <div class="admin-tabs" role="tablist">
+          <button type="button" class="admin-tab-btn active" role="tab" aria-selected="true" data-admin-tab="applicants">
+            신청자 관리
+          </button>
+          <button type="button" class="admin-tab-btn" role="tab" aria-selected="false" data-admin-tab="seminar">
+            일정 · 연락처 관리
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="container admin-main">
+      <div class="admin-alert" id="demoNoticeBar" style="display: none;">
+        [데모 미리보기 모드] config.js에 Supabase URL/Key를 설정하면 실제 DB와 동기화됩니다. 현재 변경사항은 브라우저 세션에만 임시 반영됩니다.
+      </div>
+
+      <!-- ===== TAB 1: 신청자 관리 ===== -->
+      <section class="admin-panel active" id="panelApplicants" aria-label="신청자 관리">
+        <!-- KPI Summary -->
+        <div class="admin-kpi-grid">
+          <div class="kpi-card">
+            <span>전체 신청</span>
+            <strong id="kpiTotal">0</strong>
+          </div>
+          <div class="kpi-card highlight">
+            <span>미연락</span>
+            <strong id="kpiUncontacted">0</strong>
+          </div>
+          <div class="kpi-card">
+            <span>GFC 지원</span>
+            <strong id="kpiGfc">0</strong>
+          </div>
+          <div class="kpi-card">
+            <span>SFP 지원</span>
+            <strong id="kpiSfp">0</strong>
+          </div>
+          <div class="kpi-card">
+            <span>참석확정</span>
+            <strong id="kpiConfirmed">0</strong>
+          </div>
+        </div>
+
+        <!-- Filter & Action Toolbar -->
+        <div class="admin-toolbar">
+          <div class="admin-toolbar-row">
+            <div class="filter-chips" style="margin-bottom: 0;" id="appFilterChips">
+              <button type="button" class="chip-btn active" data-app-filter="all">전체</button>
+              <button type="button" class="chip-btn" data-app-filter="uncontacted">미연락만 보기</button>
+              <button type="button" class="chip-btn" data-app-filter="GFC">GFC</button>
+              <button type="button" class="chip-btn" data-app-filter="SFP">SFP</button>
+              <button type="button" class="chip-btn" data-app-filter="상담 후 결정">상담 후 결정</button>
+            </div>
+          </div>
+
+          <div class="admin-toolbar-row">
+            <input
+              type="search"
+              id="appSearchInput"
+              class="admin-search"
+              placeholder="성함, 연락처, 일정, 메모 검색..."
+              aria-label="신청자 검색"
+            >
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-outline btn-sm" id="refreshAppsBtn">새로고침</button>
+              <button type="button" class="btn btn-navy btn-sm" id="exportCsvBtn">엑셀(CSV) 다운로드</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile View: Card List (<= 768px) -->
+        <div class="admin-card-list" id="mobileApplicantList"></div>
+
+        <!-- Desktop View: Table (> 768px) -->
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>접수일시</th>
+                <th>트랙</th>
+                <th>성함 / 연령</th>
+                <th>연락처</th>
+                <th>희망 일정</th>
+                <th>연락 여부</th>
+                <th>진행상태</th>
+                <th>상담 메모</th>
+                <th>연락처 저장 / 관리</th>
+              </tr>
+            </thead>
+            <tbody id="desktopApplicantTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== TAB 2: 잡설명회 일정 및 연락처 관리 ===== -->
+      <section class="admin-panel" id="panelSeminar" aria-label="잡설명회 일정 및 연락처 관리">
+        <!-- Settings Form -->
+        <div class="admin-section-card">
+          <h2>월별 잡설명회 기본 정보 &amp; 담당자 연락처</h2>
+          <form id="seminarSettingsForm">
+            <div class="form-group">
+              <label class="form-label" for="setTitle">월별 잡설명회 타이틀</label>
+              <input type="text" id="setTitle" class="form-control" placeholder="예: 11월 잡설명회 초대" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="setLocation">행사 장소 및 주소</label>
+              <input type="text" id="setLocation" class="form-control" placeholder="예: 그레이스리 서울호텔 2층 (...)" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="setDescription">안내 문구</label>
+              <textarea id="setDescription" class="form-textarea" placeholder="참가 혜택 및 소요시간 안내"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+              <div class="form-group">
+                <label class="form-label" for="setManagerName">담당자명</label>
+                <input type="text" id="setManagerName" class="form-control" placeholder="예: 김지훈 팀장" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="setManagerPhone">담당자 연락처</label>
+                <input type="tel" id="setManagerPhone" class="form-control" placeholder="010-4558-1663" maxlength="13" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="saveSettingsBtn">기본 정보 및 연락처 저장</button>
+          </form>
+        </div>
+
+        <!-- Schedules Management -->
+        <div class="admin-section-card">
+          <h2>회차별 일정 관리 (노출 ON/OFF · 추가 · 삭제)</h2>
+          <div class="schedule-admin-list" id="scheduleAdminList"></div>
+
+          <h3 style="font-size: 0.98rem; color: var(--navy-deep); margin: 18px 0 10px;">새 회차 일정 추가</h3>
+          <form id="addScheduleForm" class="add-schedule-grid">
+            <div>
+              <label class="form-label" for="newRoundName">회차명</label>
+              <input type="text" id="newRoundName" class="form-control" placeholder="예: 5차" required>
+            </div>
+            <div>
+              <label class="form-label" for="newEventDate">날짜(요일)</label>
+              <input type="text" id="newEventDate" class="form-control" placeholder="예: 12/4 (금)" required>
+            </div>
+            <div>
+              <label class="form-label" for="newEventTime">진행 시간</label>
+              <input type="text" id="newEventTime" class="form-control" value="10:00–13:00" required>
+            </div>
+            <div>
+              <label class="form-label" for="newCapacity">정원</label>
+              <input type="number" id="newCapacity" class="form-control" value="30" min="1" max="500" required>
+            </div>
+            <button type="submit" class="btn btn-navy" id="addScheduleBtn">회차 추가</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const cfg = window.APP_CONFIG || {};
+      const { client: supabaseClient, isConfigured } = window.createAppSupabaseClient
+        ? window.createAppSupabaseClient()
+        : { client: null, isConfigured: false };
+
+      const STATUS_OPTIONS = ['신규접수', '연락완료', '참석확정', '부재중', '보류'];
+
+      let isDemoMode = false;
+      let applications = [];
+      let seminarSettings = Object.assign({}, cfg.DEFAULT_SEMINAR_SETTINGS);
+      let seminarSchedules = (cfg.DEFAULT_SEMINAR_SCHEDULES || []).map((s) => Object.assign({}, s));
+
+      let currentFilter = 'all';
+      let currentSearch = '';
+
+      /* ---------- Demo Sample Data (config.js 미설정 시 UI 테스트용) ---------- */
+      const DEMO_APPLICATIONS = [
+        {
+          id: 101,
+          track: 'GFC',
+          name: '홍길동',
+          phone: '010-1234-5678',
+          age_group: '40대',
+          schedule_info: '1차 · 11/6 (금) · 10:00–13:00',
+          is_contacted: false,
+          status: '신규접수',
+          memo: '중소기업 임원 퇴직 예정, 법인 영업 관심 높음',
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 102,
+          track: 'SFP',
+          name: '김철수',
+          phone: '010-2345-6789',
+          age_group: '20대',
+          schedule_info: '2차 · 11/11 (수) · 10:00–13:00',
+          is_contacted: true,
+          status: '참석확정',
+          memo: '1차 유선 통화 완료, 11/11 참석 확정 안내문자 발송',
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: 103,
+          track: '상담 후 결정',
+          name: '이영희',
+          phone: '010-9876-5432',
+          age_group: '30대',
+          schedule_info: '3차 · 11/18 (수) · 10:00–13:00',
+          is_contacted: false,
+          status: '부재중',
+          memo: '오후 3시 이후 재통화 예정',
+          created_at: new Date(Date.now() - 172800000).toISOString(),
+        },
+      ];
+
+      /* ---------- Utilities ---------- */
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function cleanDigits(str) {
+        return String(str || '').replace(/[^0-9]/g, '');
+      }
+
+      function formatPhone(value) {
+        const d = cleanDigits(value).slice(0, 11);
+        if (d.length <= 3) return d;
+        if (d.length <= 7) return `${d.slice(0, 3)}-${d.slice(3)}`;
+        if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+        return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7, 11)}`;
+      }
+
+      function formatDateTime(iso) {
+        if (!iso) return '-';
+        const dt = new Date(iso);
+        if (Number.isNaN(dt.getTime())) return iso;
+        const mm = String(dt.getMonth() + 1).padStart(2, '0');
+        const dd = String(dt.getDate()).padStart(2, '0');
+        const hh = String(dt.getHours()).padStart(2, '0');
+        const mi = String(dt.getMinutes()).padStart(2, '0');
+        return `${mm}/${dd} ${hh}:${mi}`;
+      }
+
+      function getTrackBadgeClass(track) {
+        if (track === 'GFC') return 'gfc';
+        if (track === 'SFP') return 'sfp';
+        return 'undecided';
+      }
+
+      let toastTimer = null;
+      function showToast(msg, type = '') {
+        const el = document.getElementById('adminToast');
+        if (!el) return;
+        el.textContent = msg;
+        el.className = `toast show ${type}`.trim();
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          el.classList.remove('show');
+        }, 2600);
+      }
+
+      /* ---------- vCard (.vcf) Generator (UTF-8 / VERSION:3.0 / Galaxy Compatible) ---------- */
+      function escapeVCardValue(val) {
+        return String(val ?? '')
+          .replace(/\\/g, '\\\\')
+          .replace(/\r\n|\r|\n/g, '\\n')
+          .replace(/;/g, '\\;')
+          .replace(/,/g, '\\,');
+      }
+
+      function downloadApplicantVCard(app) {
+        const track = app.track || '상담 후 결정';
+        const name = (app.name || '미입력').trim();
+        const agePart = app.age_group ? ` (${app.age_group})` : '';
+
+        let prefixLabel = '[GFC/SFP 지원자]';
+        let filePrefix = 'GFC_SFP지원자';
+        if (track === 'GFC') {
+          prefixLabel = '[GFC 지원자]';
+          filePrefix = 'GFC지원자';
+        } else if (track === 'SFP') {
+          prefixLabel = '[SFP 지원자]';
+          filePrefix = 'SFP지원자';
+        }
+
+        const displayName = `${prefixLabel} ${name}${agePart}`;
+        const formattedPhone = formatPhone(app.phone || '');
+        const memoText = (app.memo || '').trim() || '없음';
+        const noteRaw = `지원트랙: ${track} / 희망일정: ${app.schedule_info || '-'} / 상태: ${app.status || '신규접수'} / 메모: ${memoText}`;
+
+        const vcfLines = [
+          'BEGIN:VCARD',
+          'VERSION:3.0',
+          `N;CHARSET=UTF-8:;${escapeVCardValue(displayName)};;;`,
+          `FN;CHARSET=UTF-8:${escapeVCardValue(displayName)}`,
+          `TEL;TYPE=CELL:${formattedPhone}`,
+          `NOTE;CHARSET=UTF-8:${escapeVCardValue(noteRaw)}`,
+          'END:VCARD',
+        ];
+
+        const vcfContent = vcfLines.join('\r\n') + '\r\n';
+        const blob = new Blob([vcfContent], { type: 'text/vcard;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const safeName = name.replace(/[\\/:*?"<>|\s]+/g, '_');
+        const fileName = `${filePrefix}_${safeName}.vcf`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        showToast(`연락처 파일(${fileName}) 저장 완료`, 'success');
+      }
+
+      /* ---------- CSV Export (UTF-8 BOM for Excel Korean Support) ---------- */
+      function exportApplicationsCSV() {
+        const list = getFilteredApplications();
+        if (list.length === 0) {
+          showToast('다운로드할 신청 내역이 없습니다.', 'error');
+          return;
+        }
+
+        const headers = ['ID', '접수일시', '지원트랙', '성함', '연락처', '연령대', '희망일정', '연락완료', '진행상태', '상담메모'];
+        const csvEscape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+        const rows = [headers.map(csvEscape).join(',')];
+        list.forEach((a) => {
+          rows.push(
+            [
+              a.id,
+              a.created_at ? new Date(a.created_at).toLocaleString('ko-KR') : '',
+              a.track,
+              a.name,
+              formatPhone(a.phone),
+              a.age_group,
+              a.schedule_info,
+              a.is_contacted ? 'Y' : 'N',
+              a.status,
+              a.memo || '',
+            ]
+              .map(csvEscape)
+              .join(',')
+          );
+        });
+
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const today = new Date().toISOString().slice(0, 10);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `삼성생명_GFC_SFP_신청자목록_${today}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        showToast(`총 ${list.length}건 엑셀(CSV) 다운로드 완료`, 'success');
+      }
+
+      /* ---------- Filtering & KPIs ---------- */
+      function getFilteredApplications() {
+        const q = currentSearch.trim().toLowerCase();
+        return applications.filter((item) => {
+          if (currentFilter === 'uncontacted' && item.is_contacted) return false;
+          if (['GFC', 'SFP', '상담 후 결정'].includes(currentFilter) && item.track !== currentFilter) return false;
+          if (q) {
+            const hay = `${item.name} ${item.phone} ${cleanDigits(item.phone)} ${item.schedule_info} ${item.memo} ${item.track} ${item.status}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+      }
+
+      function renderKPIs() {
+        document.getElementById('kpiTotal').textContent = applications.length;
+        document.getElementById('kpiUncontacted').textContent = applications.filter((a) => !a.is_contacted).length;
+        document.getElementById('kpiGfc').textContent = applications.filter((a) => a.track === 'GFC').length;
+        document.getElementById('kpiSfp').textContent = applications.filter((a) => a.track === 'SFP').length;
+        document.getElementById('kpiConfirmed').textContent = applications.filter((a) => a.status === '참석확정').length;
+      }
+
+      /* ---------- Render Applicants (Mobile Cards + Desktop Table) ---------- */
+      function buildStatusOptionsHtml(selected) {
+        return STATUS_OPTIONS.map(
+          (st) => `<option value="${escapeHtml(st)}" ${selected === st ? 'selected' : ''}>${escapeHtml(st)}</option>`
+        ).join('');
+      }
+
+      function renderApplicants() {
+        renderKPIs();
+        const filtered = getFilteredApplications();
+        const mobileList = document.getElementById('mobileApplicantList');
+        const desktopBody = document.getElementById('desktopApplicantTableBody');
+
+        if (filtered.length === 0) {
+          mobileList.innerHTML = '<div class="empty-state">조건에 해당하는 신청자가 없습니다.</div>';
+          desktopBody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 36px; color: var(--text-muted);">조건에 해당하는 신청자가 없습니다.</td></tr>';
+          return;
+        }
+
+        // 1) Mobile Card List (<= 768px)
+        mobileList.innerHTML = filtered
+          .map((a) => {
+            const telHref = `tel:${cleanDigits(a.phone)}`;
+            const phoneDisplay = formatPhone(a.phone);
+            const badgeClass = getTrackBadgeClass(a.track);
+            return `
+            <article class="applicant-card ${a.is_contacted ? 'contacted' : ''}" data-app-id="${a.id}">
+              <div class="applicant-card-top">
+                <div>
+                  <div class="applicant-name-line">
+                    <span class="track-badge ${badgeClass}">${escapeHtml(a.track)}</span>
+                    <span class="applicant-name">${escapeHtml(a.name)}</span>
+                    <span style="font-size:0.84rem; color:var(--text-secondary);">${escapeHtml(a.age_group || '')}</span>
+                  </div>
+                  <div class="applicant-meta">접수: ${escapeHtml(formatDateTime(a.created_at))}</div>
+                </div>
+                <a href="${telHref}" class="phone-call-link" aria-label="${escapeHtml(a.name)} 전화 발신">
+                  📞 ${escapeHtml(phoneDisplay)}
+                </a>
+              </div>
+
+              <div class="applicant-info-row">
+                <strong>희망 일정:</strong> <span>${escapeHtml(a.schedule_info || '-')}</span>
+              </div>
+
+              <div class="applicant-controls">
+                <label class="contact-toggle ${a.is_contacted ? 'checked' : ''}">
+                  <input type="checkbox" class="js-contact-toggle" data-id="${a.id}" ${a.is_contacted ? 'checked' : ''}>
+                  <span>${a.is_contacted ? '연락 완료' : '미연락'}</span>
+                </label>
+
+                <select class="status-select js-status-select" data-id="${a.id}" aria-label="진행상태">
+                  ${buildStatusOptionsHtml(a.status)}
+                </select>
+              </div>
+
+              <div class="memo-row">
+                <textarea class="memo-input js-memo-input" data-id="${a.id}" rows="2" placeholder="상담 메모 입력...">${escapeHtml(a.memo || '')}</textarea>
+                <button type="button" class="btn btn-primary btn-sm js-save-memo" data-id="${a.id}">메모<br>저장</button>
+              </div>
+
+              <div class="applicant-actions-row">
+                <button type="button" class="btn btn-vcf btn-sm js-download-vcf" data-id="${a.id}">
+                  연락처 저장 (.vcf)
+                </button>
+                <button type="button" class="btn btn-danger-outline btn-sm js-delete-app" data-id="${a.id}">
+                  내역 삭제
+                </button>
+              </div>
+            </article>
+          `;
+          })
+          .join('');
+
+        // 2) Desktop Table (> 768px)
+        desktopBody.innerHTML = filtered
+          .map((a) => {
+            const telHref = `tel:${cleanDigits(a.phone)}`;
+            const phoneDisplay = formatPhone(a.phone);
+            const badgeClass = getTrackBadgeClass(a.track);
+            return `
+            <tr class="${a.is_contacted ? 'contacted-row' : ''}" data-app-id="${a.id}">
+              <td style="white-space:nowrap;">${escapeHtml(formatDateTime(a.created_at))}</td>
+              <td><span class="track-badge ${badgeClass}">${escapeHtml(a.track)}</span></td>
+              <td style="white-space:nowrap;">
+                <strong>${escapeHtml(a.name)}</strong>
+                <div style="font-size:0.78rem; color:var(--text-muted);">${escapeHtml(a.age_group || '-')}</div>
+              </td>
+              <td style="white-space:nowrap;">
+                <a href="${telHref}" style="color:var(--blue-cta); font-weight:700; text-decoration:underline;">
+                  ${escapeHtml(phoneDisplay)}
+                </a>
+              </td>
+              <td>${escapeHtml(a.schedule_info || '-')}</td>
+              <td>
+                <label class="contact-toggle ${a.is_contacted ? 'checked' : ''}" style="padding:6px 10px;">
+                  <input type="checkbox" class="js-contact-toggle" data-id="${a.id}" ${a.is_contacted ? 'checked' : ''}>
+                  <span>${a.is_contacted ? '완료' : '미연락'}</span>
+                </label>
+              </td>
+              <td>
+                <select class="status-select js-status-select" data-id="${a.id}" style="min-width:108px;">
+                  ${buildStatusOptionsHtml(a.status)}
+                </select>
+              </td>
+              <td class="memo-cell">
+                <div class="memo-row">
+                  <input type="text" class="memo-input js-memo-input" data-id="${a.id}" value="${escapeHtml(a.memo || '')}" placeholder="메모 입력" style="min-height:36px;">
+                  <button type="button" class="btn btn-primary btn-sm js-save-memo" data-id="${a.id}">저장</button>
+                </div>
+              </td>
+              <td style="white-space:nowrap;">
+                <div style="display:flex; gap:6px;">
+                  <button type="button" class="btn btn-vcf btn-sm js-download-vcf" data-id="${a.id}">연락처 저장</button>
+                  <button type="button" class="btn btn-danger-outline btn-sm js-delete-app" data-id="${a.id}">삭제</button>
+                </div>
+              </td>
+            </tr>
+          `;
+          })
+          .join('');
+      }
+
+      /* ---------- Application DB Mutations ---------- */
+      async function updateApplication(id, patch, successMsg) {
+        const numericId = Number(id);
+        const idx = applications.findIndex((a) => Number(a.id) === numericId);
+        if (idx === -1) return;
+
+        if (!isDemoMode && supabaseClient) {
+          const { error } = await supabaseClient.from('applications').update(patch).eq('id', numericId);
+          if (error) {
+            console.error(error);
+            showToast('DB 업데이트에 실패했습니다.', 'error');
+            return;
+          }
+        }
+
+        applications[idx] = Object.assign({}, applications[idx], patch);
+        renderApplicants();
+        if (successMsg) showToast(successMsg, 'success');
+      }
+
+      async function deleteApplication(id) {
+        const numericId = Number(id);
+        const target = applications.find((a) => Number(a.id) === numericId);
+        if (!target) return;
+        if (!window.confirm(`"${target.name}" 신청 내역을 삭제하시겠습니까?`)) return;
+
+        if (!isDemoMode && supabaseClient) {
+          const { error } = await supabaseClient.from('applications').delete().eq('id', numericId);
+          if (error) {
+            console.error(error);
+            showToast('삭제에 실패했습니다.', 'error');
+            return;
+          }
+        }
+
+        applications = applications.filter((a) => Number(a.id) !== numericId);
+        renderApplicants();
+        showToast('신청 내역이 삭제되었습니다.');
+      }
+
+      /* ---------- Seminar Settings & Schedules CMS ---------- */
+      function fillSettingsForm() {
+        document.getElementById('setTitle').value = seminarSettings.title || '';
+        document.getElementById('setLocation').value = seminarSettings.location || '';
+        document.getElementById('setDescription').value = seminarSettings.description || '';
+        document.getElementById('setManagerName').value = seminarSettings.manager_name || '';
+        document.getElementById('setManagerPhone').value = formatPhone(seminarSettings.manager_phone || '');
+      }
+
+      function renderScheduleAdminList() {
+        const container = document.getElementById('scheduleAdminList');
+        if (seminarSchedules.length === 0) {
+          container.innerHTML = '<div class="empty-state">등록된 회차 일정이 없습니다. 아래에서 새 회차를 추가해 주세요.</div>';
+          return;
+        }
+
+        container.innerHTML = seminarSchedules
+          .map(
+            (s) => `
+          <div class="schedule-admin-row ${s.is_active ? '' : 'inactive'}">
+            <div>
+              <span class="round-tag" style="margin-right:8px;">${escapeHtml(s.round_name)}</span>
+              <strong>${escapeHtml(s.event_date)}</strong>
+              <span style="color:var(--text-secondary); margin-left:6px;">${escapeHtml(s.event_time)}</span>
+              <span style="color:var(--blue-cta); font-size:0.82rem; font-weight:700; margin-left:8px;">정원 ${escapeHtml(s.capacity)}명</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; justify-content:space-between;">
+              <label class="switch-label">
+                <input type="checkbox" class="js-schedule-active" data-id="${s.id}" ${s.is_active ? 'checked' : ''}>
+                <span>${s.is_active ? '노출 ON' : '숨김 OFF'}</span>
+              </label>
+              <button type="button" class="btn btn-danger-outline btn-sm js-delete-schedule" data-id="${s.id}">삭제</button>
+            </div>
+          </div>
+        `
+          )
+          .join('');
+      }
+
+      /* ---------- Data Loading ---------- */
+      async function loadAllAdminData() {
+        if (isDemoMode || !supabaseClient) {
+          if (applications.length === 0) {
+            applications = DEMO_APPLICATIONS.map((a) => Object.assign({}, a));
+          }
+          renderApplicants();
+          fillSettingsForm();
+          renderScheduleAdminList();
+          return;
+        }
+
+        try {
+          const [appsRes, setRes, schRes] = await Promise.all([
+            supabaseClient.from('applications').select('*').order('created_at', { ascending: false }),
+            supabaseClient.from('seminar_settings').select('*').eq('id', 1).maybeSingle(),
+            supabaseClient.from('seminar_schedules').select('*').order('id', { ascending: true }),
+          ]);
+
+          if (appsRes.error) throw appsRes.error;
+          applications = appsRes.data || [];
+
+          if (!setRes.error && setRes.data) {
+            seminarSettings = setRes.data;
+          }
+          if (!schRes.error && Array.isArray(schRes.data)) {
+            seminarSchedules = schRes.data;
+          }
+
+          renderApplicants();
+          fillSettingsForm();
+          renderScheduleAdminList();
+        } catch (err) {
+          console.error('[ADMIN] 데이터 로드 실패:', err);
+          showToast('데이터를 불러오는 중 오류가 발생했습니다.', 'error');
+        }
+      }
+
+      /* ---------- View Switch & Auth ---------- */
+      function showDashboard(emailLabel) {
+        document.getElementById('loginView').style.display = 'none';
+        document.getElementById('dashboardView').style.display = 'block';
+        document.getElementById('adminUserEmail').textContent = emailLabel || '관리자';
+        document.getElementById('demoNoticeBar').style.display = isDemoMode ? 'block' : 'none';
+        loadAllAdminData();
+      }
+
+      function showLogin() {
+        document.getElementById('dashboardView').style.display = 'none';
+        document.getElementById('loginView').style.display = 'flex';
+      }
+
+      function showLoginError(msg) {
+        const box = document.getElementById('loginError');
+        if (!msg) {
+          box.textContent = '';
+          box.classList.remove('show');
+          return;
+        }
+        box.textContent = msg;
+        box.classList.add('show');
+      }
+
+      /* ---------- Event Delegation & Bindings ---------- */
+      function bindAdminEvents() {
+        // Login Submit
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          showLoginError('');
+
+          const email = document.getElementById('adminEmail').value.trim();
+          const password = document.getElementById('adminPassword').value;
+          const btn = document.getElementById('loginSubmitBtn');
+
+          if (!email || !password) {
+            showLoginError('이메일과 비밀번호를 모두 입력해 주세요.');
+            return;
+          }
+
+          // Supabase 미연동(로컬 테스트) 시 임시 계정 로그인 허용
+          if (!isConfigured || !supabaseClient) {
+            if (email === 'realkick@nate.com' && password === '115599') {
+              isDemoMode = true;
+              showDashboard(`${email} (로컬 테스트)`);
+              return;
+            }
+            showLoginError('로컬 테스트 계정(realkick@nate.com / 115599)을 입력하거나 아래 미리보기 버튼을 눌러 주세요.');
+            return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = '로그인 중...';
+          try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            isDemoMode = false;
+            showDashboard(data.user?.email || email);
+          } catch (err) {
+            console.error(err);
+            showLoginError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '관리자 로그인';
+          }
+        });
+
+        // Demo preview button (shown only when config.js is not configured)
+        document.getElementById('demoModeBtn').addEventListener('click', () => {
+          isDemoMode = true;
+          showDashboard('데모 미리보기');
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+          if (!isDemoMode && supabaseClient) {
+            await supabaseClient.auth.signOut();
+          }
+          isDemoMode = false;
+          showLogin();
+        });
+
+        // Admin Tabs
+        document.querySelectorAll('[data-admin-tab]').forEach((tab) => {
+          tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-admin-tab');
+            document.querySelectorAll('[data-admin-tab]').forEach((t) => {
+              const active = t === tab;
+              t.classList.toggle('active', active);
+              t.setAttribute('aria-selected', String(active));
+            });
+            document.getElementById('panelApplicants').classList.toggle('active', target === 'applicants');
+            document.getElementById('panelSeminar').classList.toggle('active', target === 'seminar');
+          });
+        });
+
+        // Filter Chips
+        document.querySelectorAll('[data-app-filter]').forEach((chip) => {
+          chip.addEventListener('click', () => {
+            currentFilter = chip.getAttribute('data-app-filter');
+            document.querySelectorAll('[data-app-filter]').forEach((c) => c.classList.toggle('active', c === chip));
+            renderApplicants();
+          });
+        });
+
+        // Search
+        document.getElementById('appSearchInput').addEventListener('input', (e) => {
+          currentSearch = e.target.value;
+          renderApplicants();
+        });
+
+        // Refresh & CSV Export
+        document.getElementById('refreshAppsBtn').addEventListener('click', () => {
+          loadAllAdminData();
+          showToast('최신 데이터를 불러왔습니다.');
+        });
+        document.getElementById('exportCsvBtn').addEventListener('click', exportApplicationsCSV);
+
+        // Delegated actions for Applicant Cards & Table
+        const panelApps = document.getElementById('panelApplicants');
+
+        panelApps.addEventListener('change', (e) => {
+          const toggle = e.target.closest('.js-contact-toggle');
+          if (toggle) {
+            const id = Number(toggle.getAttribute('data-id'));
+            const checked = toggle.checked;
+            const current = applications.find((a) => Number(a.id) === id);
+            const patch = { is_contacted: checked };
+            if (checked && current && current.status === '신규접수') {
+              patch.status = '연락완료';
+            }
+            updateApplication(id, patch, checked ? '연락 완료 처리되었습니다.' : '미연락 상태로 변경되었습니다.');
+            return;
+          }
+
+          const statusSel = e.target.closest('.js-status-select');
+          if (statusSel) {
+            const id = Number(statusSel.getAttribute('data-id'));
+            const newStatus = statusSel.value;
+            const patch = { status: newStatus };
+            if (newStatus === '연락완료' || newStatus === '참석확정') {
+              patch.is_contacted = true;
+            }
+            updateApplication(id, patch, `진행상태가 '${newStatus}'(으)로 변경되었습니다.`);
+          }
+        });
+
+        panelApps.addEventListener('click', (e) => {
+          const saveMemoBtn = e.target.closest('.js-save-memo');
+          if (saveMemoBtn) {
+            const id = Number(saveMemoBtn.getAttribute('data-id'));
+            const wrapper = saveMemoBtn.closest('.memo-row');
+            const input = wrapper ? wrapper.querySelector('.js-memo-input') : null;
+            const memoVal = input ? input.value.trim() : '';
+            updateApplication(id, { memo: memoVal }, '상담 메모가 저장되었습니다.');
+            return;
+          }
+
+          const vcfBtn = e.target.closest('.js-download-vcf');
+          if (vcfBtn) {
+            const id = Number(vcfBtn.getAttribute('data-id'));
+            const app = applications.find((a) => Number(a.id) === id);
+            if (app) downloadApplicantVCard(app);
+            return;
+          }
+
+          const delBtn = e.target.closest('.js-delete-app');
+          if (delBtn) {
+            deleteApplication(delBtn.getAttribute('data-id'));
+          }
+        });
+
+        // Seminar Settings Save
+        document.getElementById('setManagerPhone').addEventListener('input', (e) => {
+          e.target.value = formatPhone(e.target.value);
+        });
+
+        document.getElementById('seminarSettingsForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const payload = {
+            id: 1,
+            title: document.getElementById('setTitle').value.trim(),
+            location: document.getElementById('setLocation').value.trim(),
+            description: document.getElementById('setDescription').value.trim(),
+            manager_name: document.getElementById('setManagerName').value.trim(),
+            manager_phone: formatPhone(document.getElementById('setManagerPhone').value),
+          };
+
+          if (!isDemoMode && supabaseClient) {
+            const { error } = await supabaseClient.from('seminar_settings').upsert(payload, { onConflict: 'id' });
+            if (error) {
+              console.error(error);
+              showToast('설정 저장에 실패했습니다.', 'error');
+              return;
+            }
+          }
+
+          seminarSettings = payload;
+          showToast('잡설명회 기본 정보 및 연락처가 저장되었습니다.', 'success');
+        });
+
+        // Add Schedule
+        document.getElementById('addScheduleForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const newItem = {
+            round_name: document.getElementById('newRoundName').value.trim(),
+            event_date: document.getElementById('newEventDate').value.trim(),
+            event_time: document.getElementById('newEventTime').value.trim(),
+            capacity: Math.max(1, parseInt(document.getElementById('newCapacity').value || '30', 10)),
+            is_active: true,
+          };
+
+          if (!newItem.round_name || !newItem.event_date) {
+            showToast('회차명과 날짜를 입력해 주세요.', 'error');
+            return;
+          }
+
+          if (!isDemoMode && supabaseClient) {
+            const { data, error } = await supabaseClient
+              .from('seminar_schedules')
+              .insert([newItem])
+              .select()
+              .single();
+            if (error) {
+              console.error(error);
+              showToast('회차 추가에 실패했습니다.', 'error');
+              return;
+            }
+            seminarSchedules.push(data);
+          } else {
+            seminarSchedules.push(Object.assign({ id: Date.now() }, newItem));
+          }
+
+          e.target.reset();
+          document.getElementById('newEventTime').value = '10:00–13:00';
+          document.getElementById('newCapacity').value = '30';
+          renderScheduleAdminList();
+          showToast('새 회차 일정이 추가되었습니다.', 'success');
+        });
+
+        // Toggle Active / Delete Schedule
+        const schList = document.getElementById('scheduleAdminList');
+        schList.addEventListener('change', async (e) => {
+          const sw = e.target.closest('.js-schedule-active');
+          if (!sw) return;
+          const id = Number(sw.getAttribute('data-id'));
+          const isActive = sw.checked;
+
+          if (!isDemoMode && supabaseClient) {
+            const { error } = await supabaseClient
+              .from('seminar_schedules')
+              .update({ is_active: isActive })
+              .eq('id', id);
+            if (error) {
+              console.error(error);
+              showToast('노출 상태 변경 실패', 'error');
+              return;
+            }
+          }
+
+          const target = seminarSchedules.find((s) => Number(s.id) === id);
+          if (target) target.is_active = isActive;
+          renderScheduleAdminList();
+          showToast(isActive ? '일정이 노출 ON으로 변경되었습니다.' : '일정이 숨김 OFF로 변경되었습니다.', 'success');
+        });
+
+        schList.addEventListener('click', async (e) => {
+          const btn = e.target.closest('.js-delete-schedule');
+          if (!btn) return;
+          const id = Number(btn.getAttribute('data-id'));
+          if (!window.confirm('이 잡설명회 회차 일정을 삭제하시겠습니까?')) return;
+
+          if (!isDemoMode && supabaseClient) {
+            const { error } = await supabaseClient.from('seminar_schedules').delete().eq('id', id);
+            if (error) {
+              console.error(error);
+              showToast('회차 삭제 실패', 'error');
+              return;
+            }
+          }
+
+          seminarSchedules = seminarSchedules.filter((s) => Number(s.id) !== id);
+          renderScheduleAdminList();
+          showToast('회차 일정이 삭제되었습니다.');
+        });
+      }
+
+      /* ---------- Init ---------- */
+      document.addEventListener('DOMContentLoaded', async () => {
+        bindAdminEvents();
+
+        if (!isConfigured || !supabaseClient) {
+          document.getElementById('configWarningBanner').style.display = 'block';
+          document.getElementById('demoModeBtn').style.display = 'inline-flex';
+          document.getElementById('adminEmail').value = 'realkick@nate.com';
+          document.getElementById('adminPassword').value = '115599';
+          showLogin();
+          return;
+        }
+
+        try {
+          const { data } = await supabaseClient.auth.getSession();
+          if (data && data.session) {
+            showDashboard(data.session.user?.email || '관리자');
+          } else {
+            showLogin();
+          }
+        } catch (err) {
+          console.error(err);
+          showLogin();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
