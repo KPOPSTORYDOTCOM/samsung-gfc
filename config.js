@@ -10,9 +10,9 @@ window.APP_CONFIG = {
   // 운영 도메인
   SITE_URL: 'https://samsung-gfc.mycard.co.kr',
 
-  // [필수 입력] Supabase 프로젝트 URL 및 공개 Anon Key
-  SUPABASE_URL: 'https://YOUR_PROJECT_ID.supabase.co',
-  SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+  // [필수 입력] Supabase 프로젝트 URL 및 공개 Publishable/Anon Key
+  SUPABASE_URL: 'https://dgubjkilgnyjyekesyry.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_QXGaHu24oDKFvt1uuJnlIQ_jtAX-ZIk',
 
   // DB 미연결 또는 오류 시 화면이 깨지지 않도록 표시되는 기본값 (site1.md 기준)
   DEFAULT_SEMINAR_SETTINGS: {
