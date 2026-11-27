@@ -1,5 +1,5 @@
 /**
- * 삼성생명 남산법인지점 GFC / SFP 통합 채용 웹사이트 환경 설정
+ * 삼성생명 남산법인지점 GFC 통합 채용 웹사이트 환경 설정
  * -----------------------------------------------------------------------------
  * 아래 SUPABASE_URL과 SUPABASE_ANON_KEY에 본인 프로젝트 값을 입력하면
  * 별도 빌드 없이 index.html 및 admin.html이 즉시 Supabase DB와 연동됩니다.
@@ -9,6 +9,10 @@
 window.APP_CONFIG = {
   // 운영 도메인
   SITE_URL: 'https://samsung-gfc.mycard.co.kr',
+
+  // GFC 위촉 가능 연령 기준 (출생연도 기준 67세 이하: 2027년 위촉 기준 1960년생까지)
+  GFC_MAX_AGE: 67,
+  GFC_MIN_BIRTH_YEAR: 1960,
 
   // [필수 입력] Supabase 프로젝트 URL 및 공개 Publishable/Anon Key
   SUPABASE_URL: 'https://dgubjkilgnyjyekesyry.supabase.co',

@@ -1,8 +1,8 @@
 /**
- * 삼성생명 GFC / SFP 통합 채용 랜딩페이지 스크립트 (index.html)
+ * 삼성생명 남산법인지점 GFC 기업재무컨설턴트 채용 랜딩페이지 스크립트 (index.html)
  * - Supabase DB 실시간 연동 (seminar_settings, seminar_schedules, applications)
- * - DB 미설정/오류 시 config.js 기본값(site1.md 기준) 자동 Fallback
- * - 모바일 내비게이션, 트랙 비교 탭, 선배 스토리 필터, FAQ 아코디언, 전화번호 자동 하이픈, 모달 제어
+ * - DB 미설정/오류 시 config.js 기본값 자동 Fallback
+ * - 주민번호 앞 6자리(YYMMDD) 기반 GFC 위촉 가능 연령(67세 이하, 출생연도 기준) 실시간·제출 검증
  */
 
 (function () {
@@ -49,6 +49,89 @@
   function formatScheduleLabel(item) {
     const parts = [item.round_name, item.event_date, item.event_time].filter(Boolean);
     return parts.join(' · ');
+  }
+
+  /* ---------- GFC 67세 연령 제한 (주민번호 앞 6자리 YYMMDD · 출생연도 기준) ---------- */
+  function getGfcAgeRule() {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1; // 1~12
+    const maxAge = Number(cfg.GFC_MAX_AGE) || 67;
+    // 11~12월 접수·교육 후 위촉 시 다음 해 위촉 기준 적용 (예: 2026년 11~12월 -> 2027년 위촉 -> 1960년생까지)
+    const appointmentYear = curMonth >= 11 ? curYear + 1 : curYear;
+    const minBirthYear = Math.max(Number(cfg.GFC_MIN_BIRTH_YEAR) || 1960, appointmentYear - maxAge);
+    const maxBirthYear = curYear - 19; // 법적 성인 기준
+    return { appointmentYear, maxAge, minBirthYear, maxBirthYear, curYear };
+  }
+
+  function parseAndValidateBirth6(rawValue) {
+    const digits = cleanDigits(rawValue);
+    if (digits.length !== 6) {
+      return {
+        valid: false,
+        reason: 'incomplete',
+        message: '생년월일(주민번호 앞 6자리 숫자)을 정확히 입력해 주세요. (예: 650315)',
+      };
+    }
+
+    const yy = parseInt(digits.slice(0, 2), 10);
+    const mm = parseInt(digits.slice(2, 4), 10);
+    const dd = parseInt(digits.slice(4, 6), 10);
+
+    if (mm < 1 || mm > 12) {
+      return {
+        valid: false,
+        reason: 'invalid_date',
+        message: '올바른 출생월(01~12)을 입력해 주세요.',
+      };
+    }
+
+    const rule = getGfcAgeRule();
+    const curYY = rule.curYear % 100;
+    const fullYear = yy <= curYY ? 2000 + yy : 1900 + yy;
+
+    // 실제 달력에 존재하는 날짜인지 검증 (윤년 포함)
+    const checkDate = new Date(fullYear, mm - 1, dd);
+    if (
+      checkDate.getFullYear() !== fullYear ||
+      checkDate.getMonth() !== mm - 1 ||
+      checkDate.getDate() !== dd
+    ) {
+      return {
+        valid: false,
+        reason: 'invalid_date',
+        message: '존재하지 않는 생년월일입니다. 주민번호 앞 6자리를 다시 확인해 주세요.',
+      };
+    }
+
+    // 생일(월·일) 무관, 출생연도만으로 67세 제한 판정
+    if (fullYear < rule.minBirthYear) {
+      return {
+        valid: false,
+        reason: 'too_old',
+        fullYear,
+        digits,
+        message: `죄송합니다. GFC 위촉 가능 연령은 ${rule.maxAge}세 이하(${rule.appointmentYear}년 위촉 기준 ${rule.minBirthYear}년생까지)로 제한되어 있어 ${fullYear}년생은 신청이 어렵습니다.`,
+      };
+    }
+
+    if (fullYear > rule.maxBirthYear) {
+      return {
+        valid: false,
+        reason: 'too_young',
+        fullYear,
+        digits,
+        message: `법적 성인(${rule.maxBirthYear}년생 이하)부터 지원 가능합니다.`,
+      };
+    }
+
+    return {
+      valid: true,
+      fullYear,
+      digits,
+      formatted: `${digits} (${fullYear}년생)`,
+      message: `${fullYear}년생 · GFC 지원 가능 (위촉 연령 ${rule.maxAge}세 이하 기준 충족)`,
+    };
   }
 
   /* ---------- Modal Control ---------- */
@@ -132,68 +215,6 @@
         link.addEventListener('click', () => setDrawer(false));
       });
     }
-  }
-
-  /* ---------- Track Comparison Tabs & Quick Select CTA ---------- */
-  function bindTrackUI() {
-    const tabBtns = document.querySelectorAll('.track-tab-btn');
-    const cards = document.querySelectorAll('[data-track-card]');
-
-    tabBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const view = btn.getAttribute('data-track-view');
-        tabBtns.forEach((b) => {
-          const active = b === btn;
-          b.classList.toggle('active', active);
-          b.setAttribute('aria-selected', String(active));
-        });
-
-        cards.forEach((card) => {
-          const type = card.getAttribute('data-track-card');
-          const show = view === 'both' || view === type;
-          card.classList.toggle('hidden-track', !show);
-        });
-      });
-    });
-
-    // Quick select track button inside GFC / SFP cards
-    document.querySelectorAll('.select-track-cta').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const trackVal = btn.getAttribute('data-select-track');
-        const radio = document.querySelector(`input[name="track"][value="${trackVal}"]`);
-        if (radio) {
-          radio.checked = true;
-          updateTrackRadioVisuals();
-        }
-        const seminarSec = document.getElementById('seminar');
-        if (seminarSec) seminarSec.scrollIntoView({ behavior: 'smooth' });
-      });
-    });
-  }
-
-  function updateTrackRadioVisuals() {
-    document.querySelectorAll('#trackRadioGroup .radio-card').forEach((card) => {
-      const input = card.querySelector('input[type="radio"]');
-      card.classList.toggle('selected', Boolean(input && input.checked));
-    });
-  }
-
-  /* ---------- Senior Story Filter ---------- */
-  function bindStoryFilter() {
-    const chips = document.querySelectorAll('[data-story-filter]');
-    const stories = document.querySelectorAll('[data-story-track]');
-
-    chips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        const filter = chip.getAttribute('data-story-filter');
-        chips.forEach((c) => c.classList.toggle('active', c === chip));
-        stories.forEach((card) => {
-          const track = card.getAttribute('data-story-track');
-          const show = filter === 'all' || track === filter;
-          card.classList.toggle('hidden-story', !show);
-        });
-      });
-    });
   }
 
   /* ---------- FAQ Accordion ---------- */
@@ -296,7 +317,6 @@
   }
 
   async function loadSeminarDataFromDB() {
-    // Paint immediate fallback first so there is zero layout shift
     renderSeminarSettings(cfg.DEFAULT_SEMINAR_SETTINGS);
     renderSeminarSchedules(cfg.DEFAULT_SEMINAR_SCHEDULES);
 
@@ -337,10 +357,43 @@
     errBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  function updateBirthStatusUI(rawValue) {
+    const statusEl = document.getElementById('birthStatus');
+    if (!statusEl) return null;
+    const digits = cleanDigits(rawValue);
+
+    if (digits.length < 6) {
+      statusEl.textContent = '';
+      statusEl.className = 'birth-status';
+      return null;
+    }
+
+    const result = parseAndValidateBirth6(digits);
+    statusEl.textContent = result.message;
+    statusEl.className = `birth-status ${result.valid ? 'ok' : 'blocked'}`;
+    return result;
+  }
+
   function bindApplicationForm() {
     const form = document.getElementById('applicationForm');
+    const birthInput = document.getElementById('applicantBirth');
     const phoneInput = document.getElementById('applicantPhone');
     const submitBtn = document.getElementById('submitAppBtn');
+
+    // Dynamic hint reflecting exact year rule
+    const hintEl = document.getElementById('birthHintText');
+    if (hintEl) {
+      const rule = getGfcAgeRule();
+      hintEl.innerHTML = `※ GFC 위촉 가능 연령은 <strong>${rule.maxAge}세 이하</strong>로 제한됩니다. (${rule.appointmentYear}년 위촉 기준 <strong>${rule.minBirthYear}년생까지</strong> 가능 · 생일 무관, 출생연도 기준)`;
+    }
+
+    if (birthInput) {
+      birthInput.addEventListener('input', (e) => {
+        const cleaned = cleanDigits(e.target.value).slice(0, 6);
+        e.target.value = cleaned;
+        updateBirthStatusUI(cleaned);
+      });
+    }
 
     if (phoneInput) {
       phoneInput.addEventListener('input', (e) => {
@@ -348,22 +401,17 @@
       });
     }
 
-    document.querySelectorAll('#trackRadioGroup input[type="radio"]').forEach((r) => {
-      r.addEventListener('change', updateTrackRadioVisuals);
-    });
-
     if (!form) return;
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       showFormError('');
 
-      const trackEl = form.querySelector('input[name="track"]:checked');
-      const track = trackEl ? trackEl.value : 'GFC';
       const name = (document.getElementById('applicantName')?.value || '').trim();
+      const birthRaw = cleanDigits(document.getElementById('applicantBirth')?.value || '');
+      const birthCheck = parseAndValidateBirth6(birthRaw);
       const phone = formatKoreanPhone(document.getElementById('applicantPhone')?.value || '');
       const phoneDigits = cleanDigits(phone);
-      const ageGroup = (document.getElementById('applicantAge')?.value || '').trim();
       const scheduleInfo = (document.getElementById('applicantSchedule')?.value || '').trim();
       const agreed = Boolean(document.getElementById('privacyAgree')?.checked);
 
@@ -372,21 +420,26 @@
         document.getElementById('applicantName')?.focus();
         return;
       }
+
+      if (!birthCheck.valid) {
+        updateBirthStatusUI(birthRaw);
+        showFormError(birthCheck.message);
+        document.getElementById('applicantBirth')?.focus();
+        return;
+      }
+
       if (!/^01[016789][0-9]{7,8}$/.test(phoneDigits)) {
         showFormError('휴대전화 번호를 정확히 입력해 주세요. (예: 010-1234-5678)');
         document.getElementById('applicantPhone')?.focus();
         return;
       }
-      if (!ageGroup) {
-        showFormError('연령대를 선택해 주세요.');
-        document.getElementById('applicantAge')?.focus();
-        return;
-      }
+
       if (!scheduleInfo) {
         showFormError('희망 참석 일정을 선택해 주세요.');
         document.getElementById('applicantSchedule')?.focus();
         return;
       }
+
       if (!agreed) {
         showFormError('필수 개인정보 수집 및 이용에 동의해 주세요.');
         document.getElementById('privacyAgree')?.focus();
@@ -394,10 +447,10 @@
       }
 
       const payload = {
-        track,
+        track: 'GFC',
         name,
         phone,
-        age_group: ageGroup,
+        age_group: birthCheck.formatted, // 예: "650315 (1965년생)"
         schedule_info: scheduleInfo,
         is_contacted: false,
         status: '신규접수',
@@ -415,15 +468,14 @@
           const { error } = await supabaseClient.from('applications').insert([payload]);
           if (error) throw error;
         } else {
-          // Preview fallback when config.js keys are not yet filled
           console.info('[GFC] Supabase 미설정(데모 모드) — 접수 데이터:', payload);
         }
 
         const summaryEl = document.getElementById('successSummary');
         if (summaryEl) {
           summaryEl.innerHTML = `
-            <div><span>지원 트랙</span><strong>${escapeHtml(track)}</strong></div>
-            <div><span>성함 / 연령대</span><strong>${escapeHtml(name)} (${escapeHtml(ageGroup)})</strong></div>
+            <div><span>지원 분야</span><strong>GFC (기업재무컨설턴트)</strong></div>
+            <div><span>성함 / 생년월일</span><strong>${escapeHtml(name)} (${escapeHtml(birthCheck.formatted)})</strong></div>
             <div><span>연락처</span><strong>${escapeHtml(phone)}</strong></div>
             <div><span>희망 일정</span><strong>${escapeHtml(scheduleInfo)}</strong></div>
           `;
@@ -432,12 +484,12 @@
         const leadEl = document.getElementById('successLeadText');
         if (leadEl) {
           leadEl.textContent = isConfigured
-            ? `${currentSettings.manager_name}이 영업일 기준 1일 이내에 남겨주신 번호로 좌석 확정 안내 연락을 드리겠습니다.`
+            ? `남산법인지점 ${currentSettings.manager_name}이 영업일 기준 1일 이내에 남겨주신 번호로 좌석 확정 안내 연락을 드리겠습니다.`
             : `[미리보기 모드] config.js에 Supabase 키를 입력하면 DB에 자동 저장됩니다. (${currentSettings.manager_name} 문의 가능)`;
         }
 
         form.reset();
-        updateTrackRadioVisuals();
+        updateBirthStatusUI('');
         openModal('successModal');
       } catch (err) {
         console.error('[GFC] 신청 저장 실패:', err);
@@ -457,8 +509,6 @@
   /* ---------- Init ---------- */
   document.addEventListener('DOMContentLoaded', () => {
     bindNavigation();
-    bindTrackUI();
-    bindStoryFilter();
     bindFaqAccordion();
     bindModals();
     bindApplicationForm();

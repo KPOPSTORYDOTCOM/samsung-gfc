@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
-  <title>관리자 센터 | 삼성생명 남산법인지점 GFC · SFP 채용 관리</title>
+  <title>관리자 센터 | 삼성생명 남산법인지점 GFC 채용 관리</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="style.css">
@@ -14,9 +14,9 @@
   <!-- ==================== 1. 로그인 화면 ==================== -->
   <section class="admin-login-wrap" id="loginView">
     <div class="admin-login-card">
-      <span class="brand-badge">GFC·SFP ADMIN</span>
-      <h1>남산법인지점 관리자 로그인</h1>
-      <p>삼성생명 남산법인지점 GFC · SFP 잡설명회 신청자 및 일정 관리 시스템입니다.</p>
+      <span class="brand-badge">GFC ADMIN</span>
+      <h1>남산법인지점 GFC 관리자 로그인</h1>
+      <p>삼성생명 남산법인지점 GFC 잡설명회 신청자 및 일정 관리 시스템입니다.</p>
 
       <div class="admin-alert" id="configWarningBanner" style="display: none;">
         <strong>[로컬 테스트 모드]</strong> 아직 <code>config.js</code>에 Supabase 키가 입력되지 않았습니다.<br>
@@ -32,7 +32,7 @@
             type="email"
             id="adminEmail"
             class="form-control"
-            placeholder="admin@example.com"
+            placeholder="realkick@nate.com"
             autocomplete="username"
             required
           >
@@ -66,7 +66,7 @@
 
       <div style="margin-top: 18px; text-align: center;">
         <a href="index.html" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: underline;">
-          ← 채용 랜딩페이지로 돌아가기
+          ← GFC 채용 랜딩페이지로 돌아가기
         </a>
       </div>
     </div>
@@ -78,9 +78,9 @@
     <header class="admin-header">
       <div class="container admin-header-inner">
         <div class="brand-logo">
-          <span class="brand-badge">ADMIN</span>
+          <span class="brand-badge">GFC</span>
           <span class="brand-title">
-            <strong>남산법인지점 채용 관리</strong>
+            <strong>남산법인지점 GFC 관리</strong>
             <span id="adminUserEmail">관리자</span>
           </span>
         </div>
@@ -97,7 +97,7 @@
       <div class="container">
         <div class="admin-tabs" role="tablist">
           <button type="button" class="admin-tab-btn active" role="tab" aria-selected="true" data-admin-tab="applicants">
-            신청자 관리
+            GFC 신청자 관리
           </button>
           <button type="button" class="admin-tab-btn" role="tab" aria-selected="false" data-admin-tab="seminar">
             일정 · 연락처 관리
@@ -111,9 +111,9 @@
         [데모 미리보기 모드] config.js에 Supabase URL/Key를 설정하면 실제 DB와 동기화됩니다. 현재 변경사항은 브라우저 세션에만 임시 반영됩니다.
       </div>
 
-      <!-- ===== TAB 1: 신청자 관리 ===== -->
-      <section class="admin-panel active" id="panelApplicants" aria-label="신청자 관리">
-        <!-- KPI Summary -->
+      <!-- ===== TAB 1: GFC 신청자 관리 ===== -->
+      <section class="admin-panel active" id="panelApplicants" aria-label="GFC 신청자 관리">
+        <!-- KPI Summary (4 Cards) -->
         <div class="admin-kpi-grid">
           <div class="kpi-card">
             <span>전체 신청</span>
@@ -124,12 +124,8 @@
             <strong id="kpiUncontacted">0</strong>
           </div>
           <div class="kpi-card">
-            <span>GFC 지원</span>
-            <strong id="kpiGfc">0</strong>
-          </div>
-          <div class="kpi-card">
-            <span>SFP 지원</span>
-            <strong id="kpiSfp">0</strong>
+            <span>연락완료</span>
+            <strong id="kpiContacted">0</strong>
           </div>
           <div class="kpi-card">
             <span>참석확정</span>
@@ -143,9 +139,9 @@
             <div class="filter-chips" style="margin-bottom: 0;" id="appFilterChips">
               <button type="button" class="chip-btn active" data-app-filter="all">전체</button>
               <button type="button" class="chip-btn" data-app-filter="uncontacted">미연락만 보기</button>
-              <button type="button" class="chip-btn" data-app-filter="GFC">GFC</button>
-              <button type="button" class="chip-btn" data-app-filter="SFP">SFP</button>
-              <button type="button" class="chip-btn" data-app-filter="상담 후 결정">상담 후 결정</button>
+              <button type="button" class="chip-btn" data-app-filter="신규접수">신규접수</button>
+              <button type="button" class="chip-btn" data-app-filter="참석확정">참석확정</button>
+              <button type="button" class="chip-btn" data-app-filter="hold">부재중·보류</button>
             </div>
           </div>
 
@@ -154,7 +150,7 @@
               type="search"
               id="appSearchInput"
               class="admin-search"
-              placeholder="성함, 연락처, 일정, 메모 검색..."
+              placeholder="성함, 생년월일, 연락처, 일정, 메모 검색..."
               aria-label="신청자 검색"
             >
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -173,8 +169,7 @@
             <thead>
               <tr>
                 <th>접수일시</th>
-                <th>트랙</th>
-                <th>성함 / 연령</th>
+                <th>성함 / 생년월일</th>
                 <th>연락처</th>
                 <th>희망 일정</th>
                 <th>연락 여부</th>
@@ -196,7 +191,7 @@
           <form id="seminarSettingsForm">
             <div class="form-group">
               <label class="form-label" for="setTitle">월별 잡설명회 타이틀</label>
-              <input type="text" id="setTitle" class="form-control" placeholder="예: 11월 잡설명회 초대" required>
+              <input type="text" id="setTitle" class="form-control" placeholder="예: 12월 잡설명회 초대" required>
             </div>
 
             <div class="form-group">
@@ -285,7 +280,7 @@
           track: 'GFC',
           name: '홍길동',
           phone: '010-1234-5678',
-          age_group: '40대',
+          age_group: '650315 (1965년생)',
           schedule_info: '1차 · 11/6 (금) · 10:00–13:00',
           is_contacted: false,
           status: '신규접수',
@@ -294,27 +289,15 @@
         },
         {
           id: 102,
-          track: 'SFP',
-          name: '김철수',
+          track: 'GFC',
+          name: '김영수',
           phone: '010-2345-6789',
-          age_group: '20대',
+          age_group: '600820 (1960년생)',
           schedule_info: '2차 · 11/11 (수) · 10:00–13:00',
           is_contacted: true,
           status: '참석확정',
-          memo: '1차 유선 통화 완료, 11/11 참석 확정 안내문자 발송',
+          memo: '1차 유선 통화 완료, 1960년생 위촉 가능 확인',
           created_at: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: 103,
-          track: '상담 후 결정',
-          name: '이영희',
-          phone: '010-9876-5432',
-          age_group: '30대',
-          schedule_info: '3차 · 11/18 (수) · 10:00–13:00',
-          is_contacted: false,
-          status: '부재중',
-          memo: '오후 3시 이후 재통화 예정',
-          created_at: new Date(Date.now() - 172800000).toISOString(),
         },
       ];
 
@@ -351,10 +334,12 @@
         return `${mm}/${dd} ${hh}:${mi}`;
       }
 
-      function getTrackBadgeClass(track) {
-        if (track === 'GFC') return 'gfc';
-        if (track === 'SFP') return 'sfp';
-        return 'undecided';
+      function extractShortBirthLabel(ageGroup) {
+        const raw = String(ageGroup || '').trim();
+        if (!raw) return '';
+        const m = raw.match(/(\d{4})년생/);
+        if (m) return `${m[1].slice(2)}년생`;
+        return raw;
       }
 
       let toastTimer = null;
@@ -379,24 +364,14 @@
       }
 
       function downloadApplicantVCard(app) {
-        const track = app.track || '상담 후 결정';
         const name = (app.name || '미입력').trim();
-        const agePart = app.age_group ? ` (${app.age_group})` : '';
+        const shortBirth = extractShortBirthLabel(app.age_group);
+        const agePart = shortBirth ? ` (${shortBirth})` : '';
 
-        let prefixLabel = '[GFC/SFP 지원자]';
-        let filePrefix = 'GFC_SFP지원자';
-        if (track === 'GFC') {
-          prefixLabel = '[GFC 지원자]';
-          filePrefix = 'GFC지원자';
-        } else if (track === 'SFP') {
-          prefixLabel = '[SFP 지원자]';
-          filePrefix = 'SFP지원자';
-        }
-
-        const displayName = `${prefixLabel} ${name}${agePart}`;
+        const displayName = `[GFC 지원자] ${name}${agePart}`;
         const formattedPhone = formatPhone(app.phone || '');
         const memoText = (app.memo || '').trim() || '없음';
-        const noteRaw = `지원트랙: ${track} / 희망일정: ${app.schedule_info || '-'} / 상태: ${app.status || '신규접수'} / 메모: ${memoText}`;
+        const noteRaw = `생년월일: ${app.age_group || '-'} / 희망일정: ${app.schedule_info || '-'} / 상태: ${app.status || '신규접수'} / 메모: ${memoText}`;
 
         const vcfLines = [
           'BEGIN:VCARD',
@@ -413,7 +388,7 @@
         const url = URL.createObjectURL(blob);
 
         const safeName = name.replace(/[\\/:*?"<>|\s]+/g, '_');
-        const fileName = `${filePrefix}_${safeName}.vcf`;
+        const fileName = `GFC지원자_${safeName}.vcf`;
 
         const a = document.createElement('a');
         a.href = url;
@@ -434,7 +409,7 @@
           return;
         }
 
-        const headers = ['ID', '접수일시', '지원트랙', '성함', '연락처', '연령대', '희망일정', '연락완료', '진행상태', '상담메모'];
+        const headers = ['ID', '접수일시', '성함', '생년월일(출생연도)', '연락처', '희망일정', '연락완료', '진행상태', '상담메모'];
         const csvEscape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
         const rows = [headers.map(csvEscape).join(',')];
@@ -443,10 +418,9 @@
             [
               a.id,
               a.created_at ? new Date(a.created_at).toLocaleString('ko-KR') : '',
-              a.track,
               a.name,
+              a.age_group || '',
               formatPhone(a.phone),
-              a.age_group,
               a.schedule_info,
               a.is_contacted ? 'Y' : 'N',
               a.status,
@@ -463,7 +437,7 @@
         const today = new Date().toISOString().slice(0, 10);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `삼성생명_GFC_SFP_신청자목록_${today}.csv`;
+        a.download = `삼성생명_남산법인지점_GFC_신청자목록_${today}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -477,9 +451,11 @@
         const q = currentSearch.trim().toLowerCase();
         return applications.filter((item) => {
           if (currentFilter === 'uncontacted' && item.is_contacted) return false;
-          if (['GFC', 'SFP', '상담 후 결정'].includes(currentFilter) && item.track !== currentFilter) return false;
+          if (currentFilter === '신규접수' && item.status !== '신규접수') return false;
+          if (currentFilter === '참석확정' && item.status !== '참석확정') return false;
+          if (currentFilter === 'hold' && item.status !== '부재중' && item.status !== '보류') return false;
           if (q) {
-            const hay = `${item.name} ${item.phone} ${cleanDigits(item.phone)} ${item.schedule_info} ${item.memo} ${item.track} ${item.status}`.toLowerCase();
+            const hay = `${item.name} ${item.age_group} ${item.phone} ${cleanDigits(item.phone)} ${item.schedule_info} ${item.memo} ${item.status}`.toLowerCase();
             if (!hay.includes(q)) return false;
           }
           return true;
@@ -489,8 +465,7 @@
       function renderKPIs() {
         document.getElementById('kpiTotal').textContent = applications.length;
         document.getElementById('kpiUncontacted').textContent = applications.filter((a) => !a.is_contacted).length;
-        document.getElementById('kpiGfc').textContent = applications.filter((a) => a.track === 'GFC').length;
-        document.getElementById('kpiSfp').textContent = applications.filter((a) => a.track === 'SFP').length;
+        document.getElementById('kpiContacted').textContent = applications.filter((a) => a.is_contacted).length;
         document.getElementById('kpiConfirmed').textContent = applications.filter((a) => a.status === '참석확정').length;
       }
 
@@ -509,7 +484,7 @@
 
         if (filtered.length === 0) {
           mobileList.innerHTML = '<div class="empty-state">조건에 해당하는 신청자가 없습니다.</div>';
-          desktopBody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 36px; color: var(--text-muted);">조건에 해당하는 신청자가 없습니다.</td></tr>';
+          desktopBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 36px; color: var(--text-muted);">조건에 해당하는 신청자가 없습니다.</td></tr>';
           return;
         }
 
@@ -518,17 +493,15 @@
           .map((a) => {
             const telHref = `tel:${cleanDigits(a.phone)}`;
             const phoneDisplay = formatPhone(a.phone);
-            const badgeClass = getTrackBadgeClass(a.track);
             return `
             <article class="applicant-card ${a.is_contacted ? 'contacted' : ''}" data-app-id="${a.id}">
               <div class="applicant-card-top">
                 <div>
                   <div class="applicant-name-line">
-                    <span class="track-badge ${badgeClass}">${escapeHtml(a.track)}</span>
+                    <span class="track-badge gfc">GFC</span>
                     <span class="applicant-name">${escapeHtml(a.name)}</span>
-                    <span style="font-size:0.84rem; color:var(--text-secondary);">${escapeHtml(a.age_group || '')}</span>
                   </div>
-                  <div class="applicant-meta">접수: ${escapeHtml(formatDateTime(a.created_at))}</div>
+                  <div class="applicant-meta">생년월일: ${escapeHtml(a.age_group || '-')} · 접수: ${escapeHtml(formatDateTime(a.created_at))}</div>
                 </div>
                 <a href="${telHref}" class="phone-call-link" aria-label="${escapeHtml(a.name)} 전화 발신">
                   📞 ${escapeHtml(phoneDisplay)}
@@ -573,11 +546,9 @@
           .map((a) => {
             const telHref = `tel:${cleanDigits(a.phone)}`;
             const phoneDisplay = formatPhone(a.phone);
-            const badgeClass = getTrackBadgeClass(a.track);
             return `
             <tr class="${a.is_contacted ? 'contacted-row' : ''}" data-app-id="${a.id}">
               <td style="white-space:nowrap;">${escapeHtml(formatDateTime(a.created_at))}</td>
-              <td><span class="track-badge ${badgeClass}">${escapeHtml(a.track)}</span></td>
               <td style="white-space:nowrap;">
                 <strong>${escapeHtml(a.name)}</strong>
                 <div style="font-size:0.78rem; color:var(--text-muted);">${escapeHtml(a.age_group || '-')}</div>
@@ -775,7 +746,6 @@
             return;
           }
 
-          // Supabase 미연동(로컬 테스트) 시 임시 계정 로그인 허용
           if (!isConfigured || !supabaseClient) {
             if (email === 'realkick@nate.com' && password === '115599') {
               isDemoMode = true;
